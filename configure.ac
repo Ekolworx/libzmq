@@ -1,6 +1,6 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
-AC_PREREQ(2.61)
+AC_PREREQ([2.71])
 #
 # The 0MQ version number is extracted from include/zmq.h using
 # the version.sh script. Hence, it should be updated there.
@@ -15,7 +15,10 @@ AM_INIT_AUTOMAKE(foreign subdir-objects tar-ustar dist-zip)
 # Allow "configure --disable-maintainer-mode" to disable timestamp checking 
 AM_MAINTAINER_MODE([enable])
 
-m4_pattern_allow([AC_PROG_CC_C99])
+m4_pattern_allow([m4_warn([obsolete],
+[AC_PROG_CC_C99 is obsolete; use AC_PROG_CC
+])dnl
+AC_REQUIRE(AC_PROG_CC)])
 m4_include([m4/ax_check_compile_flag.m4])
 m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 m4_include([m4/ax_code_coverage.m4])
@@ -65,7 +68,10 @@ ZMQ_ORIG_CXXFLAGS="${CXXFLAGS:-none}"
 
 # Checks for programs.
 AC_PROG_CC
-AX_CHECK_COMPILE_FLAG([-std=c11], [CFLAGS+=" -std=c11"], [AC_PROG_CC_C99])
+AX_CHECK_COMPILE_FLAG([-std=c11], [CFLAGS+=" -std=c11"], [m4_warn([obsolete],
+[AC_PROG_CC_C99 is obsolete; use AC_PROG_CC
+])dnl
+AC_REQUIRE(AC_PROG_CC)])
 AC_PROG_CXX
 AX_CODE_COVERAGE
 AM_PROG_CC_C_O
@@ -80,8 +86,11 @@ AC_PATH_PROG([XMLTO], [xmlto])
 AC_ARG_VAR([ASCIIDOC], [path to asciidoc command])
 AC_PATH_PROG([ASCIIDOC], [asciidoc])
 LIBZMQ_CONFIG_LIBTOOL
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+AC_REQUIRE(AC_CANONICAL_HOST)_LT_SET_OPTION([LT_INIT],[win32-dll])
+m4_warn([obsolete],[AC_LIBTOOL_WIN32_DLL: Remove this warning and the call to _LT_SET_OPTION when you
+put the 'win32-dll' option into LT_INIT's first parameter.])
+
+LT_INIT
 AX_VALGRIND_CHECK
 AX_CHECK_VSCRIPT
 AX_FUNC_POSIX_MEMALIGN
@@ -447,7 +456,15 @@ LIBZMQ_CHECK_CACHELINE
 LIBZMQ_CHECK_CV_IMPL
 
 # Checks for header files.
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro `STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  ISO C90 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS(\
     errno.h \
     time.h \
@@ -530,7 +547,20 @@ else
     AC_TYPE_SSIZE_T
 fi
 
-AC_HEADER_TIME
+m4_warn([obsolete],
+[Update your code to rely only on HAVE_SYS_TIME_H,
+then remove this warning and the obsolete code below it.
+All current systems provide time.h; it need not be checked for.
+Not all systems provide sys/time.h, but those that do, all allow
+you to include it and time.h simultaneously.])dnl
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 AC_TYPE_UINT32_T
 AC_C_VOLATILE
 
@@ -820,7 +850,19 @@ LIBZMQ_CHECK_ATOMIC_INTRINSICS([
 AC_LANG_POP([C++])
 
 # Checks for library functions.
-AC_TYPE_SIGNAL
+m4_warn([obsolete],
+[your code may safely assume C89 semantics that RETSIGTYPE is void.
+Remove this warning and the `AC_CACHE_CHECK' when you adjust the code.])dnl
+AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
+[AC_LANG_PROGRAM([#include <sys/types.h>
+#include <signal.h>
+],
+		 [return *(signal (0, 0)) (0) == 1;])],
+		   [ac_cv_type_signal=int],
+		   [ac_cv_type_signal=void])])
+AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
+		    (`int' or `void').])
+
 AC_CHECK_FUNCS(perror gettimeofday clock_gettime memset socket getifaddrs freeifaddrs mkdtemp accept4)
 AC_CHECK_HEADERS([alloca.h])
 
